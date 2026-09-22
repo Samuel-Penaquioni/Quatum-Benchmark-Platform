@@ -70,30 +70,49 @@ def build_noise_model(
 
     return noise_model
 
-def run_simulation(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = 8192):
-    sim_ideal = AerSimulator()
-    sim_noisy = AerSimulator(noise_model=noise_model) if noise_model else sim_ideal
+def create_simulator(noise_model: NoiseModel = None) -> AerSimulator:
+    # Create Circuit Simulator
+    sim = AerSimulator(noise_model=noise_model)
 
+    return sim
+
+def transpile_circuit(circuit: QuantumCircuit, sim: AerSimulator):
     # Transpile to simulator
-    tc_ideal = transpile(circuit, sim_ideal)
-    tc_noisy = transpile(circuit, sim_noisy) if noise_model else tc_ideal
+    tc = transpile(circuit, sim)
 
+    return tc
+
+def execute_circuit(sim_ideal: AerSimulator, tc, shots):
     # Execute
-    result_ideal = sim_ideal.run(tc_ideal, shots=shots).result()
-    counts_ideal = result_ideal.get_counts()
+    result = sim_ideal.run(tc, shots=shots).result()
 
-    if noise_model:
-        result_noisy = sim_noisy.run(tc_noisy, shots=shots).result()
-        counts_noisy = result_noisy.get_counts()
-    else:
-        counts_noisy = counts_ideal
+    return result
 
-    return counts_ideal, counts_noisy
+def get_counts(result_ideal):
+    counts = result_ideal.get_counts()
+
+    return counts
+
+def run_ideal_simulation(circuit: QuantumCircuit, shots):
+    ideal_circuit = get_counts(execute_circuit(create_simulator(), transpile_circuit(circuit, create_simulator()), shots))
+
+    return ideal_circuit
+
+def run_noisy_simulation(circuit: QuantumCircuit, noise_model, shots):
+    noisy_circuit = get_counts(execute_circuit(create_simulator(noise_model), transpile_circuit(circuit, create_simulator(noise_model)), shots))
+
+    return noisy_circuit
+
+def run_benchmark(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = 8192):
+    ideal_result = run_ideal_simulation(circuit, shots)
+    noisy_result = run_noisy_simulation(circuit, noise_model, shots)
+
+    return ideal_result, noisy_result
 
 if __name__ == '__main__':
     num_qubits = 4
     noise_model = build_noise_model(num_qubits)
     ghz = create_ghz_circuit(num_qubits)
     efficientsu2 = create_efficientsu2_circuit(num_qubits)
-    counts_ideal_ghz, counts_noisy_ghz = run_simulation(ghz, noise_model=noise_model)
-    counts_ideal_efficientsu2, counts_noisy_efficientsu2 = run_simulation(efficientsu2, noise_model=noise_model)
+    counts_ideal_ghz, counts_noisy_ghz = run_benchmark(ghz, noise_model=noise_model)
+    counts_ideal_efficientsu2, counts_noisy_efficientsu2 = run_benchmark(efficientsu2, noise_model=noise_model)
