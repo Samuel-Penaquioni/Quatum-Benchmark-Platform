@@ -1,0 +1,24 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.eggs/
+.env
+.venv/
+ENV/
+build/
+dist/
+
+# Virtual environments
+venv/
+env/
+
+# Logs
+*.log
+
+# --- PyCharm / JetBrains ---
+.idea/
+*.iml
