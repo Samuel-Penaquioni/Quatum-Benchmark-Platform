@@ -17,6 +17,13 @@ class BenchmarkConfig:
     shots: int = 8192
     reps: int = 2
 
+@dataclass
+class BenchmarkResult:
+    circuit_name: str
+    shots: int
+    ideal_counts: dict
+    noisy_counts: dict
+
 def microseconds_to_seconds(microseconds: float) -> float:
     return microseconds * 1e-6
 
@@ -127,19 +134,18 @@ def run_simulation(circuit: QuantumCircuit, noise_model, shots) -> dict:
 
     return count
 
-def run_benchmark(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = BenchmarkConfig.shots):
+def run_benchmark(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = BenchmarkConfig.shots) -> BenchmarkResult:
     ideal_result = run_simulation(circuit, None, shots)
     noisy_result = run_simulation(circuit, noise_model, shots)
 
-    return ideal_result, noisy_result
+    return BenchmarkResult(circuit.name, shots, ideal_result, noisy_result)
 
 if __name__ == '__main__':
+    config = BenchmarkConfig()
     noise_model = build_noise_model()
     ghz = create_ghz_circuit()
     efficientsu2 = create_efficientsu2_circuit()
-    counts_ideal_ghz, counts_noisy_ghz = run_benchmark(ghz, noise_model=noise_model)
-    counts_ideal_efficientsu2, counts_noisy_efficientsu2 = run_benchmark(efficientsu2, noise_model=noise_model)
-    print(counts_ideal_ghz)
-    print(counts_ideal_efficientsu2)
-    print(counts_noisy_ghz)
-    print(counts_noisy_efficientsu2)
+    result_ghz = run_benchmark(ghz, noise_model=noise_model, shots=BenchmarkConfig.shots)
+    result_efficientsu2 = run_benchmark(efficientsu2, noise_model=noise_model)
+    print(result_ghz)
+    print(result_efficientsu2)
