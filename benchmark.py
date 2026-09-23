@@ -5,8 +5,19 @@ from qiskit_aer import AerSimulator
 from qiskit import transpile
 import numpy as np
 
+from dataclasses import dataclass
 
-def create_ghz_circuit(num_qubits: int) -> QuantumCircuit:
+DEFAULT_T1_US = 100.0
+DEFAULT_T2_US = 100.0
+DEFAULT_GATE_TIME_NS = 50.0
+
+@dataclass
+class BenchmarkConfig:
+    num_qubits: int = 4
+    shots: int = 8192
+    reps: int = 2
+
+def create_ghz_circuit(num_qubits: int = 4) -> QuantumCircuit:
     qc = QuantumCircuit(num_qubits, num_qubits)
     qc.h(0)
     # Entangled the qubits
@@ -15,7 +26,7 @@ def create_ghz_circuit(num_qubits: int) -> QuantumCircuit:
     qc.measure_all()
     return qc
 
-def create_efficientsu2_circuit(num_qubits: int, reps: int = 2) -> QuantumCircuit:
+def create_efficientsu2_circuit(num_qubits: int = 4, reps: int = 2) -> QuantumCircuit:
     ansatz = efficient_su2(
         num_qubits=num_qubits,
         su2_gates=['ry', 'rz'],
@@ -29,10 +40,10 @@ def create_efficientsu2_circuit(num_qubits: int, reps: int = 2) -> QuantumCircui
     return qc
 
 def build_noise_model(
-        num_qubits: int,
-        t1_us: float=100.0,
-        t2_us: float=100.0,
-        gate_time_ns: float=50.0,
+        num_qubits: int = BenchmarkConfig.num_qubits,
+        t1_us: float=DEFAULT_T1_US,
+        t2_us: float=DEFAULT_T2_US,
+        gate_time_ns: float=DEFAULT_GATE_TIME_NS,
         depol_1q: float=0.001,
         depol_2q: float=0.01,
         readout_error_prob: float=0.02
@@ -93,26 +104,24 @@ def get_counts(result_ideal):
 
     return counts
 
-def run_ideal_simulation(circuit: QuantumCircuit, shots):
-    ideal_circuit = get_counts(execute_circuit(create_simulator(), transpile_circuit(circuit, create_simulator()), shots))
+def run_simulation(circuit: QuantumCircuit, noise_model, shots) -> dict:
+    count = get_counts(execute_circuit(create_simulator(noise_model), transpile_circuit(circuit, create_simulator(noise_model)), shots))
 
-    return ideal_circuit
+    return count
 
-def run_noisy_simulation(circuit: QuantumCircuit, noise_model, shots):
-    noisy_circuit = get_counts(execute_circuit(create_simulator(noise_model), transpile_circuit(circuit, create_simulator(noise_model)), shots))
-
-    return noisy_circuit
-
-def run_benchmark(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = 8192):
-    ideal_result = run_ideal_simulation(circuit, shots)
-    noisy_result = run_noisy_simulation(circuit, noise_model, shots)
+def run_benchmark(circuit: QuantumCircuit, noise_model: NoiseModel = None, shots: int = BenchmarkConfig.shots):
+    ideal_result = run_simulation(circuit, None, shots)
+    noisy_result = run_simulation(circuit, noise_model, shots)
 
     return ideal_result, noisy_result
 
 if __name__ == '__main__':
-    num_qubits = 4
-    noise_model = build_noise_model(num_qubits)
-    ghz = create_ghz_circuit(num_qubits)
-    efficientsu2 = create_efficientsu2_circuit(num_qubits)
+    noise_model = build_noise_model()
+    ghz = create_ghz_circuit()
+    efficientsu2 = create_efficientsu2_circuit()
     counts_ideal_ghz, counts_noisy_ghz = run_benchmark(ghz, noise_model=noise_model)
     counts_ideal_efficientsu2, counts_noisy_efficientsu2 = run_benchmark(efficientsu2, noise_model=noise_model)
+    print(counts_ideal_ghz)
+    print(counts_ideal_efficientsu2)
+    print(counts_noisy_ghz)
+    print(counts_noisy_efficientsu2)
