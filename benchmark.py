@@ -17,6 +17,12 @@ class BenchmarkConfig:
     shots: int = 8192
     reps: int = 2
 
+def microseconds_to_seconds(microseconds: float) -> float:
+    return microseconds * 1e-6
+
+def nanoseconds_to_seconds(nanoseconds: float) -> float:
+    return nanoseconds * 1e-9
+
 def create_ghz_circuit(num_qubits: int = 4) -> QuantumCircuit:
     qc = QuantumCircuit(num_qubits, num_qubits)
     qc.h(0)
@@ -39,6 +45,23 @@ def create_efficientsu2_circuit(num_qubits: int = 4, reps: int = 2) -> QuantumCi
     qc.measure_all()
     return qc
 
+def create_thermal_error(t1_us: float, t2_us: float, gate_time_ns: float):
+    t1_s = microseconds_to_seconds(t1_us)
+    t2_s = microseconds_to_seconds(t2_us)
+    gate_time_s = nanoseconds_to_seconds(gate_time_ns)
+
+    return thermal_relaxation_error(t1_s, t2_s, gate_time_s)
+
+def create_depolarizing_error(depol: float, qubits: int):
+
+    return depolarizing_error(depol, qubits)
+
+def create_readout_error(readout: float) -> ReadoutError:
+    prob = 1 - readout
+
+    return ReadoutError([[prob, readout], [readout, prob]])
+
+
 def build_noise_model(
         num_qubits: int = BenchmarkConfig.num_qubits,
         t1_us: float=DEFAULT_T1_US,
@@ -49,19 +72,16 @@ def build_noise_model(
         readout_error_prob: float=0.02
 ):
     noise_model = NoiseModel()
-    gate_time_s = gate_time_ns * 1e-9
-    t1_s = t1_us * 1e-6
-    t2_s = t2_us * 1e-6
 
     # Error for 1-qubit gates
-    thermal_1q = thermal_relaxation_error(t1_s, t2_s, gate_time_s)
-    depol_1q_error = depolarizing_error(depol_1q, 1)
-    error_1q = thermal_1q.compose(depol_1q_error)
+    thermal_error_1 = create_thermal_error(t1_us, t2_us, gate_time_ns)
+    depol_error_1 = create_depolarizing_error(depol_1q, 1)
+    error_1q = thermal_error_1.compose(depol_error_1)
 
     # Error for 2-qubit gates
-    thermal_2q = thermal_relaxation_error(t1_s, t2_s, gate_time_s)
-    depol_2q_error = depolarizing_error(depol_2q, 2)
-    error_2q = thermal_2q.compose(depol_2q_error)
+    thermal_error_2 = create_thermal_error(t1_us, t2_us, gate_time_ns)
+    depol_2q_error = create_depolarizing_error(depol_2q, 2)
+    error_2q = thermal_error_2.compose(depol_2q_error)
 
     # Add errors to all ports that will be used or are important.
     single_qubit_gates = ['u1', 'u2', 'u3', 'rx', 'ry', 'rz', 'sx', 'x']
@@ -74,9 +94,7 @@ def build_noise_model(
         noise_model.add_quantum_error(error_2q, two_qubit_gates, [i , i + 1])
 
     # Reading error (2x2 confusion matrix)
-    prob_0_given_0 = 1 - readout_error_prob
-    prob_1_given_1 = 1 - readout_error_prob
-    readout_err = ReadoutError([[prob_0_given_0, readout_error_prob], [readout_error_prob, prob_1_given_1]])
+    readout_err = create_readout_error(readout_error_prob)
     noise_model.add_all_qubit_readout_error(readout_err)
 
     return noise_model
