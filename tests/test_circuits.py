@@ -1,8 +1,8 @@
 import unittest
 
-from benchmark import BenchmarkConfig
-from benchmark import create_ghz_circuit
-from benchmark import create_efficientsu2_circuit
+from benchmark.config import BenchmarkConfig
+from benchmark.benchmark import create_ghz_circuit
+from benchmark.benchmark import create_efficientsu2_circuit
 
 class TestCircuits(unittest.TestCase):
     def test_ghz_number_of_qubits(self):
