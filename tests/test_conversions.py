@@ -1,5 +1,5 @@
 import unittest
-from benchmark import microseconds_to_seconds, nanoseconds_to_seconds
+from benchmark.conversions import *
 
 
 class TestConversions(unittest.TestCase):

@@ -76,8 +76,6 @@ def create_readout_error(readout: float) -> ReadoutError:
 
     return ReadoutError([[prob, readout], [readout, prob]])
 
-
-
 def build_noise_model(config: BenchmarkConfig):
     noise_model = NoiseModel()
 

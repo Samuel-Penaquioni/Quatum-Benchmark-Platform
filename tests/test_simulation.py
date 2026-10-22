@@ -2,7 +2,7 @@ import unittest
 
 from benchmark.config import BenchmarkConfig
 from benchmark.models import BenchmarkResult
-from benchmark.benchmark import create_simulator, transpile_circuit, execute_circuit, get_counts
+from benchmark.simulation import create_simulator, transpile_circuit, execute_circuit, get_counts
 
 from qiskit_aer import AerSimulator
 from qiskit import QuantumCircuit

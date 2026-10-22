@@ -1,12 +1,7 @@
 import unittest
 
-from benchmark import BenchmarkConfig
-from benchmark import create_thermal_error
-from benchmark import create_readout_error
-from benchmark import create_depolarizing_error
-from benchmark import build_noise_model
-
-from qiskit_aer.noise import thermal_relaxation_error, depolarizing_error, ReadoutError
+from benchmark.config import BenchmarkConfig
+from benchmark.noise import create_thermal_error, create_depolarizing_error, create_readout_error, build_noise_model
 
 class TestNoise(unittest.TestCase):
     def test_noise(self):
