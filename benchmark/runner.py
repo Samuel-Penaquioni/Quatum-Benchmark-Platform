@@ -2,6 +2,7 @@ from qiskit import QuantumCircuit
 from benchmark.config import BenchmarkConfig
 from benchmark.models import BenchmarkResult
 from benchmark.simulation import run_simulation
+from qiskit_aer.noise import NoiseModel
 
 
 def run_benchmark(name: str, circuit: QuantumCircuit, noise_model: NoiseModel = None, config: BenchmarkConfig = None) -> BenchmarkResult:
